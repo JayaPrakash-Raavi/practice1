@@ -267,6 +267,26 @@ if df is not None:
         else:
             st.write("No insights available.")
 
+    st.markdown("---")
+    st.markdown("### 📈 Daily Revenue Timeline")
+    if len(filtered_df) > 0:
+        # Copy to avoid SettingWithCopy warning and compute daily totals
+        revenue_df = filtered_df.copy()
+        revenue_df['Date'] = pd.to_datetime(revenue_df['order_timestamp']).dt.date
+        daily_revenue = revenue_df.groupby('Date')['total_amount'].sum().reset_index()
+        daily_revenue.columns = ['Date', 'Daily Revenue']
+        daily_revenue = daily_revenue.sort_values('Date')
+        
+        st.line_chart(
+            data=daily_revenue,
+            x='Date',
+            y='Daily Revenue',
+            color='#EC4899',
+            use_container_width=True
+        )
+    else:
+        st.warning("No data available for the selected filters.")
+
     st.markdown("<br>", unsafe_allow_html=True)
 
     # DataFrame display section
