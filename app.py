@@ -328,6 +328,59 @@ if df is not None:
         else:
             st.write("No analysis available.")
 
+    st.markdown("---")
+    
+    # Pie/Donut Chart row
+    col_pie, col_pie_info = st.columns([2, 1])
+    
+    with col_pie:
+        st.markdown("### 🏆 Orders by Customer Loyalty Tier")
+        if len(filtered_df) > 0:
+            import altair as alt
+            
+            # Count orders by loyalty tier
+            loyalty_counts = filtered_df['customer_loyalty_tier'].value_counts().reset_index()
+            loyalty_counts.columns = ['Loyalty Tier', 'Orders']
+            
+            # Create a styled donut chart in Altair
+            donut_chart = alt.Chart(loyalty_counts).mark_arc(innerRadius=60, outerRadius=110).encode(
+                theta=alt.Theta(field="Orders", type="quantitative"),
+                color=alt.Color(field="Loyalty Tier", type="nominal", scale=alt.Scale(
+                    domain=['Gold', 'Silver', 'Bronze'],
+                    range=['#F59E0B', '#94A3B8', '#D97706'] # Polished Gold, Silver/Slate, Bronze/Orange
+                ), legend=alt.Legend(title="Loyalty Tier")),
+                tooltip=['Loyalty Tier', 'Orders']
+            ).properties(
+                height=280
+            )
+            
+            st.altair_chart(donut_chart, use_container_width=True)
+        else:
+            st.warning("No data available for the selected filters.")
+            
+    with col_pie_info:
+        st.markdown("### 💎 Loyalty Tier Insights")
+        if len(filtered_df) > 0:
+            loyalty_counts = filtered_df['customer_loyalty_tier'].value_counts()
+            total_loyalty_orders = loyalty_counts.sum()
+            
+            st.markdown(f"- **Total Loyalty Program Orders:** `{total_loyalty_orders:,}`")
+            
+            for tier in ['Gold', 'Silver', 'Bronze']:
+                if tier in loyalty_counts:
+                    count = loyalty_counts[tier]
+                    percentage = (count / total_loyalty_orders) * 100
+                    # Calculate average order value for this tier
+                    tier_df = filtered_df[filtered_df['customer_loyalty_tier'] == tier]
+                    avg_spend = tier_df['total_amount'].mean() if len(tier_df) > 0 else 0
+                    
+                    st.markdown(
+                        f"- **{tier} Tier:** `{percentage:.1f}%` of orders "
+                        f"({count:,} orders), averaging **${avg_spend:.2f}** per order."
+                    )
+        else:
+            st.write("No insights available.")
+
     st.markdown("<br>", unsafe_allow_html=True)
 
     # DataFrame display section
