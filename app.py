@@ -459,6 +459,67 @@ if df is not None:
         else:
             st.write("No insights available.")
 
+    st.markdown("---")
+    
+    # Map row
+    col_map, col_map_info = st.columns([2, 1])
+    
+    with col_map:
+        st.markdown("### 🗺️ Restaurant Order Hotspots")
+        if len(filtered_df) > 0:
+            # Group by city and count orders
+            city_counts = filtered_df['restaurant_city'].value_counts().reset_index()
+            city_counts.columns = ['City', 'Order Volume']
+            
+            # Map coordinates
+            CITY_COORDINATES = {
+                'Los Angeles': {'lat': 34.0522, 'lon': -118.2437},
+                'Houston': {'lat': 29.7604, 'lon': -95.3698},
+                'San Antonio': {'lat': 29.4241, 'lon': -98.4936},
+                'New York': {'lat': 40.7128, 'lon': -74.0060},
+                'San Diego': {'lat': 32.7157, 'lon': -117.1611},
+                'Chicago': {'lat': 41.8781, 'lon': -87.6298},
+                'Phoenix': {'lat': 33.4484, 'lon': -112.0740},
+                'Philadelphia': {'lat': 39.9526, 'lon': -75.1652}
+            }
+            city_counts['lat'] = city_counts['City'].map(lambda c: CITY_COORDINATES.get(c, {}).get('lat', 0.0))
+            city_counts['lon'] = city_counts['City'].map(lambda c: CITY_COORDINATES.get(c, {}).get('lon', 0.0))
+            
+            # Scale point sizes based on volume (in meters for map display)
+            max_vol = city_counts['Order Volume'].max()
+            min_vol = city_counts['Order Volume'].min()
+            
+            if max_vol != min_vol:
+                city_counts['point_size'] = ((city_counts['Order Volume'] - min_vol) / (max_vol - min_vol)) * 80000 + 40000
+            else:
+                city_counts['point_size'] = 60000
+                
+            st.map(
+                data=city_counts,
+                latitude='lat',
+                longitude='lon',
+                size='point_size',
+                color='#F59E0B',
+                use_container_width=True
+            )
+        else:
+            st.warning("No data available for the selected filters.")
+            
+    with col_map_info:
+        st.markdown("### 🌆 City Performance Overview")
+        if len(filtered_df) > 0:
+            city_counts = filtered_df['restaurant_city'].value_counts()
+            total_orders = city_counts.sum()
+            
+            st.markdown(f"**Total Orders Across Cities:** `{total_orders:,}`")
+            
+            # Display cities list with percentages
+            for idx, (city, count) in enumerate(city_counts.items()):
+                pct = (count / total_orders) * 100
+                st.markdown(f"{idx+1}. **{city}**: `{pct:.1f}%` ({count:,} orders)")
+        else:
+            st.write("No city data available.")
+
     st.markdown("<br>", unsafe_allow_html=True)
 
     # DataFrame display section
