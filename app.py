@@ -287,6 +287,47 @@ if df is not None:
     else:
         st.warning("No data available for the selected filters.")
 
+    st.markdown("---")
+    
+    # Scatter Plot row
+    col_scatter, col_scatter_info = st.columns([2, 1])
+    
+    with col_scatter:
+        st.markdown("### ☀️ Weather vs. Actual Delivery Duration")
+        if len(filtered_df) > 0:
+            # Clean null values for temperature and duration
+            scatter_df = filtered_df.dropna(subset=['weather_temperature', 'delivery_duration_actual'])
+            st.scatter_chart(
+                data=scatter_df,
+                x='weather_temperature',
+                y='delivery_duration_actual',
+                color='#4F46E5',
+                use_container_width=True
+            )
+        else:
+            st.warning("No data available for the selected filters.")
+            
+    with col_scatter_info:
+        st.markdown("### ❄️ Weather Delay Analysis")
+        if len(filtered_df) > 0:
+            scatter_df = filtered_df.dropna(subset=['weather_temperature', 'delivery_duration_actual'])
+            if len(scatter_df) > 1:
+                correlation = scatter_df['weather_temperature'].corr(scatter_df['delivery_duration_actual'])
+                st.markdown(f"- **Correlation Coefficient:** `{correlation:.3f}`")
+                if abs(correlation) < 0.1:
+                    relation_desc = "virtually no linear relationship"
+                elif correlation > 0:
+                    relation_desc = "a slight positive correlation (higher temps = longer delivery)"
+                else:
+                    relation_desc = "a slight negative correlation (colder temps = longer delivery)"
+                st.markdown(f"- There is {relation_desc} between temperature and delivery duration in the selected subset.")
+            
+            avg_duration = filtered_df['delivery_duration_actual'].mean()
+            st.markdown(f"- **Average Delivery Duration:** `{avg_duration:.1f} minutes`")
+            st.markdown(f"- Use this scatter plot to identify outliers (e.g. extremely long delivery times in cold or stormy weather).")
+        else:
+            st.write("No analysis available.")
+
     st.markdown("<br>", unsafe_allow_html=True)
 
     # DataFrame display section
