@@ -1,0 +1,270 @@
+import streamlit as st
+import pandas as pd
+import os
+
+# Set page config for a wide layout, premium title, and app icon
+st.set_page_config(
+    page_title="Food Delivery Transactions Explorer",
+    page_icon="🍔",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Inject modern styling with custom CSS for high-fidelity aesthetics
+st.markdown(
+    """
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
+    
+    /* Font style override */
+    html, body, [class*="css"] {
+        font-family: 'Outfit', sans-serif;
+    }
+    
+    /* Sleek gradient background header */
+    .hero-container {
+        background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 50%, #EC4899 100%);
+        padding: 2.5rem;
+        border-radius: 16px;
+        color: white;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 25px rgba(79, 70, 229, 0.15);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .hero-container::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 60%);
+        transform: rotate(15deg);
+        pointer-events: none;
+    }
+    
+    .hero-title {
+        font-size: 2.8rem;
+        font-weight: 800;
+        margin: 0;
+        letter-spacing: -0.5px;
+    }
+    
+    .hero-subtitle {
+        font-size: 1.15rem;
+        font-weight: 300;
+        opacity: 0.9;
+        margin-top: 0.5rem;
+        line-height: 1.6;
+    }
+    
+    /* Custom metric card cards styling */
+    .metric-card {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 1.25rem;
+        text-align: center;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    }
+    
+    .metric-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(124, 58, 237, 0.15);
+        border-color: rgba(124, 58, 237, 0.3);
+    }
+    
+    .metric-val {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: #7C3AED;
+    }
+    
+    .metric-label {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        color: #71717a;
+        margin-top: 0.25rem;
+        font-weight: 600;
+    }
+    
+    /* Section Headings */
+    .section-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-top: 1.5rem;
+        margin-bottom: 1rem;
+        padding-left: 0.5rem;
+        border-left: 4px solid #7C3AED;
+        color: inherit;
+    }
+    
+    /* Styled footer */
+    .footer-text {
+        text-align: center;
+        color: #a1a1aa;
+        font-size: 0.85rem;
+        margin-top: 3rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        padding-top: 1.5rem;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# Load data helper cached to maximize load speed performance
+@st.cache_data
+def load_data():
+    file_path = "synthetic_food_delivery_transactions.csv"
+    if os.path.exists(file_path):
+        df = pd.read_csv(file_path)
+        return df
+    else:
+        return None
+
+# Load dataset
+df = load_data()
+
+# Render Landing Header Hero
+st.markdown(
+    """
+    <div class="hero-container">
+        <h1 class="hero-title">🍔 Food Delivery Dashboard</h1>
+        <p class="hero-subtitle">Interactive analysis of customer orders, restaurants, prep times, and transaction values.</p>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+if df is not None:
+    # Sidebar Configuration & Filters
+    with st.sidebar:
+        st.markdown("### 🛠️ Dashboard Configuration")
+        st.write("Easily adjust visual options and explore dataset characteristics.")
+        
+        # Interactive slider to change number of rows (default 5)
+        num_rows = st.slider(
+            "Rows to preview",
+            min_value=1,
+            max_value=50,
+            value=5,
+            help="Choose the number of records to show in the preview table below."
+        )
+        
+        st.markdown("---")
+        st.markdown("### 📊 Dataset Overview")
+        st.markdown(f"**Total Records:** `{len(df):,}`")
+        st.markdown(f"**Total Columns:** `{len(df.columns)}`")
+        
+        # Simple filter by City
+        all_cities = sorted(df['restaurant_city'].dropna().unique())
+        selected_cities = st.multiselect(
+            "Filter by City",
+            options=all_cities,
+            default=[]
+        )
+        
+        # Simple filter by Cuisine
+        all_cuisines = sorted(df['restaurant_cuisine'].dropna().unique())
+        selected_cuisines = st.multiselect(
+            "Filter by Cuisine",
+            options=all_cuisines,
+            default=[]
+        )
+
+    # Filter dataframe based on selections
+    filtered_df = df
+    if selected_cities:
+        filtered_df = filtered_df[filtered_df['restaurant_city'].isin(selected_cities)]
+    if selected_cuisines:
+        filtered_df = filtered_df[filtered_df['restaurant_cuisine'].isin(selected_cuisines)]
+
+    # Key Statistics Metrics
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.markdown(
+            f"""
+            <div class="metric-card">
+                <div class="metric-val">{len(filtered_df):,}</div>
+                <div class="metric-label">Filtered Orders</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        
+    with col2:
+        avg_val = filtered_df['total_amount'].mean() if len(filtered_df) > 0 else 0
+        st.markdown(
+            f"""
+            <div class="metric-card">
+                <div class="metric-val">${avg_val:.2f}</div>
+                <div class="metric-label">Avg Order Amount</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        
+    with col3:
+        avg_rating = filtered_df['restaurant_rating'].mean() if len(filtered_df) > 0 else 0
+        st.markdown(
+            f"""
+            <div class="metric-card">
+                <div class="metric-val">★ {avg_rating:.2f}</div>
+                <div class="metric-label">Avg Restaurant Rating</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        
+    with col4:
+        avg_prep = filtered_df['restaurant_avg_prep_time'].mean() if len(filtered_df) > 0 else 0
+        st.markdown(
+            f"""
+            <div class="metric-card">
+                <div class="metric-val">{avg_prep:.1f} min</div>
+                <div class="metric-label">Avg Prep Time</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # DataFrame display section
+    st.markdown(f'<div class="section-title">Dataset Preview (Showing first {num_rows} records)</div>', unsafe_allow_html=True)
+    
+    # Render the styled DataFrame
+    st.dataframe(
+        filtered_df.head(num_rows),
+        use_container_width=True,
+        hide_index=True
+    )
+
+    # Quick download button for current selection
+    st.markdown("<br>", unsafe_allow_html=True)
+    csv_data = filtered_df.head(num_rows).to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="📥 Download current preview as CSV",
+        data=csv_data,
+        file_name="delivery_transactions_preview.csv",
+        mime="text/csv",
+    )
+
+else:
+    st.error("⚠️ Unable to load the dataset. Please ensure `synthetic_food_delivery_transactions.csv` exists in the application directory.")
+
+# Dashboard footer
+st.markdown(
+    """
+    <div class="footer-text">
+        Designed for Food Delivery Analytics Dashboard &copy; 2026. Built with Streamlit.
+    </div>
+    """,
+    unsafe_allow_html=True
+)
