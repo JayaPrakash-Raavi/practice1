@@ -379,6 +379,84 @@ if df is not None:
                         f"({count:,} orders), averaging **${avg_spend:.2f}** per order."
                     )
         else:
+            st.write("No analysis available.")
+
+    st.markdown("---")
+    
+    # Heatmap row
+    col_heat, col_heat_info = st.columns([2, 1])
+    
+    with col_heat:
+        st.markdown("### 📊 Correlation Heatmap")
+        if len(filtered_df) > 0:
+            import altair as alt
+            
+            # Map column names for display
+            cols_map = {
+                'restaurant_avg_prep_time': 'Prep Time',
+                'delivery_fee': 'Delivery Fee',
+                'tip': 'Tip Amount',
+                'delivery_duration_actual': 'Delivery Duration'
+            }
+            
+            # Drop null values and calculate correlation matrix
+            heat_df = filtered_df[list(cols_map.keys())].dropna().rename(columns=cols_map)
+            
+            if len(heat_df) > 1:
+                corr_matrix = heat_df.corr()
+                corr_data = corr_matrix.stack().reset_index()
+                corr_data.columns = ['Variable 1', 'Variable 2', 'Correlation']
+                
+                # Base chart
+                base = alt.Chart(corr_data).encode(
+                    x=alt.X('Variable 1:N', title=None),
+                    y=alt.Y('Variable 2:N', title=None)
+                )
+                
+                # Heatmap rectangles
+                heatmap = base.mark_rect().encode(
+                    color=alt.Color('Correlation:Q', scale=alt.Scale(scheme='viridis', domain=[-1, 1]), title="Corr"),
+                    tooltip=['Variable 1', 'Variable 2', alt.Tooltip('Correlation:Q', format='.3f')]
+                )
+                
+                # Correlation values as text overlay
+                text = base.mark_text(fontSize=14, fontWeight='bold').encode(
+                    text=alt.Text('Correlation:Q', format='.3f'),
+                    color=alt.condition(
+                        alt.datum.Correlation > 0.5,
+                        alt.value('black'),
+                        alt.value('white')
+                    )
+                )
+                
+                st.altair_chart(heatmap + text, use_container_width=True)
+            else:
+                st.warning("Not enough data to calculate correlations.")
+        else:
+            st.warning("No data available for the selected filters.")
+            
+    with col_heat_info:
+        st.markdown("### 🔍 Correlation Insights")
+        if len(filtered_df) > 0:
+            heat_df = filtered_df[list(cols_map.keys())].dropna().rename(columns=cols_map)
+            if len(heat_df) > 1:
+                corr_matrix = heat_df.corr()
+                
+                # Extract interesting correlations
+                prep_duration_corr = corr_matrix.loc['Prep Time', 'Delivery Duration']
+                fee_duration_corr = corr_matrix.loc['Delivery Fee', 'Delivery Duration']
+                
+                st.markdown(f"- **Prep Time vs. Delivery Duration:** `{prep_duration_corr:.3f}`")
+                st.markdown(f"- **Delivery Fee vs. Delivery Duration:** `{fee_duration_corr:.3f}`")
+                st.markdown("---")
+                st.markdown("**Interpretation Guide:**")
+                st.markdown("- `+1.000` = Perfect positive relationship.")
+                st.markdown("- `0.000` = No linear relationship.")
+                st.markdown("- `-1.000` = Perfect negative relationship.")
+                st.markdown("- Higher correlation between *Prep Time* and *Delivery Duration* implies prep delays directly prolong the customer's wait.")
+            else:
+                st.write("Not enough data.")
+        else:
             st.write("No insights available.")
 
     st.markdown("<br>", unsafe_allow_html=True)
