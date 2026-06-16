@@ -236,6 +236,39 @@ if df is not None:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
+    # Visual Insights Section
+    st.markdown('<div class="section-title">Visual Insights</div>', unsafe_allow_html=True)
+    
+    col_chart, col_info = st.columns([2, 1])
+    
+    with col_chart:
+        st.markdown("### 🏆 Top 10 Most Popular Cuisines")
+        if len(filtered_df) > 0:
+            cuisine_counts = filtered_df['restaurant_cuisine'].value_counts().head(10).reset_index()
+            cuisine_counts.columns = ['Cuisine', 'Order Volume']
+            st.bar_chart(
+                data=cuisine_counts,
+                x='Cuisine',
+                y='Order Volume',
+                color='#7C3AED',
+                use_container_width=True
+            )
+        else:
+            st.warning("No data available for the selected filters.")
+            
+    with col_info:
+        st.markdown("### 💡 Quick Insights")
+        if len(filtered_df) > 0:
+            top_cuisine = filtered_df['restaurant_cuisine'].mode()[0]
+            top_cuisine_count = filtered_df['restaurant_cuisine'].value_counts().iloc[0]
+            st.markdown(f"- The most popular cuisine is **{top_cuisine}** with **{top_cuisine_count:,}** orders.")
+            st.markdown(f"- Cuisines are sorted by total transaction frequency.")
+            st.markdown(f"- Adjust filters in the sidebar to recalculate popularity by city.")
+        else:
+            st.write("No insights available.")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
     # DataFrame display section
     st.markdown(f'<div class="section-title">Dataset Preview (Showing first {num_rows} records)</div>', unsafe_allow_html=True)
     
